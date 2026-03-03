@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLEX ROULETTE</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --orange: #E5A00D; --odim: rgba(229,160,13,0.10);
+    --bg: #0f0f0f; --card: #1a1a1a; --border: #2a2a2a;
+    --text: #e0e0e0; --muted: #5a5a5a;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  header { width: 100%; padding: 2rem 2rem 0; display: flex; align-items: center; gap: 1.2rem; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.1em; color: var(--orange); line-height: 1; }
+  .logo span { color: var(--text); opacity: 0.28; font-size: 0.82rem; letter-spacing: 0.25em; display: block; margin-top: -3px; }
+  .rule { flex: 1; height: 1px; background: var(--border); }
+
+  #setup-panel { width: 100%; max-width: 460px; padding: 3rem 2rem 4rem; display: flex; flex-direction: column; gap: 1.4rem; animation: up 0.4s ease both; }
+  .panel-label { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 0.22em; color: var(--muted); }
+
+  .oauth-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.7rem;
+    width: 100%; padding: 1rem 1.4rem; background: var(--orange); color: #111;
+    border: none; border-radius: 8px; cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.18rem; letter-spacing: 0.13em;
+    transition: opacity 0.18s, transform 0.1s;
+  }
+  .oauth-btn:hover { opacity: 0.86; }
+  .oauth-btn:active { transform: scale(0.985); }
+  .oauth-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .status-line { display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.81rem; color: var(--muted); min-height: 1rem; }
+  .spin { width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: rotate 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes rotate { to { transform: rotate(360deg); } }
+
+  #server-picker { display: none; flex-direction: column; gap: 0.5rem; }
+  .server-opt { padding: 0.7rem 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem; cursor: pointer; text-align: left; transition: border-color 0.18s; }
+  .server-opt:hover { border-color: var(--orange); }
+
+  .or-divider { display: flex; align-items: center; gap: 0.8rem; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .field { display: flex; flex-direction: column; gap: 0.4rem; }
+  .field-label { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  input[type="text"], input[type="password"] { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 0.7rem 1rem; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.92rem; width: 100%; outline: none; transition: border-color 0.18s; }
+  input:focus { border-color: var(--orange); }
+  .field-hint { font-size: 0.72rem; color: var(--muted); line-height: 1.6; }
+  .field-hint a { color: var(--orange); text-decoration: none; }
+  .field-hint strong { color: #999; }
+  .field-hint code { font-size: 0.7rem; background: #222; padding: 1px 5px; border-radius: 3px; }
+
+  .lib-type-row { display: flex; gap: 0.5rem; }
+  .lt-opt { flex: 1; padding: 0.6rem 0.3rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.16s; user-select: none; position: relative; }
+  .lt-opt input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
+  .lt-opt.active { border-color: var(--orange); color: var(--orange); background: var(--odim); }
+  .lt-opt:hover:not(.active) { border-color: #3a3a3a; color: #aaa; }
+
+  .manual-btn { padding: 0.8rem; width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 0.14em; cursor: pointer; transition: border-color 0.18s, color 0.18s; }
+  .manual-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .manual-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .error-box { background: rgba(220,50,50,0.08); border: 1px solid rgba(220,50,50,0.2); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.81rem; color: #f08080; display: none; line-height: 1.7; }
+  .error-box a { color: var(--orange); }
+  .error-box code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 0.76rem; }
+  .error-box strong { color: #f5a0a0; }
+
+  #app-panel { display: none; width: 100%; max-width: 800px; padding: 2rem 2rem 4rem; flex-direction: column; align-items: center; gap: 2rem; animation: up 0.4s ease both; }
+  .controls { display: flex; gap: 0.75rem; width: 100%; flex-wrap: wrap; align-items: center; }
+  .lib-tabs { display: flex; gap: 0.4rem; flex: 1; flex-wrap: wrap; }
+  .lib-tab { padding: 0.45rem 1rem; border: 1px solid var(--border); border-radius: 20px; background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.16s; white-space: nowrap; }
+  .lib-tab.active { border-color: var(--orange); color: var(--orange); background: var(--odim); }
+  .rnd-btn { padding: 0.5rem 1.4rem; background: var(--orange); color: #111; border: none; border-radius: 20px; font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 0.12em; cursor: pointer; transition: opacity 0.16s; white-space: nowrap; }
+  .rnd-btn:hover { opacity: 0.86; }
+  .rnd-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #result-card { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: none; }
+  .card-inner { display: flex; min-height: 340px; }
+  .poster { flex-shrink: 0; width: 215px; overflow: hidden; background: #111; }
+  .poster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+  #result-card:hover .poster img { transform: scale(1.04); }
+  .no-poster { width: 100%; min-height: 340px; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #2a2a2a; }
+  .card-body { flex: 1; padding: 2rem; display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+  .card-type { font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--orange); font-weight: 500; }
+  .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.1rem; line-height: 1.05; color: #fff; }
+  .card-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; font-size: 0.8rem; color: var(--muted); }
+  .badge { display: inline-block; background: var(--odim); border: 1px solid rgba(229,160,13,0.28); color: var(--orange); border-radius: 4px; padding: 0.12rem 0.5rem; font-size: 0.75rem; font-weight: 500; }
+  .card-summary { font-size: 0.88rem; line-height: 1.7; color: #888; flex: 1; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-genres { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; padding-top: 0.5rem; }
+  .genre { padding: 0.18rem 0.55rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.68rem; color: var(--muted); }
+  .watch-btn { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; padding: 0.55rem 1.1rem; background: var(--orange); color: #111; border-radius: 6px; font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 0.1em; text-decoration: none; transition: opacity 0.18s; align-self: flex-start; }
+  .watch-btn:hover { opacity: 0.85; }
+
+  #skeleton { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: none; }
+  .sk-inner { display: flex; min-height: 340px; }
+  .sk-poster { width: 215px; flex-shrink: 0; background: linear-gradient(90deg,#1a1a1a 25%,#222 50%,#1a1a1a 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+  .sk-body { flex: 1; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+  .sk-line { border-radius: 4px; background: linear-gradient(90deg,#222 25%,#2a2a2a 50%,#222 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+  .count-bar { width: 100%; font-size: 0.75rem; color: var(--muted); text-align: center; }
+  .back-btn { background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.72rem; cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase; transition: color 0.18s; align-self: flex-end; }
+  .back-btn:hover { color: var(--text); }
+  .signout-link { background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.72rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; transition: color 0.18s; }
+  .signout-link:hover { color: #f08080; }
+
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  @keyframes up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  @media(max-width:560px){
+    .card-inner{flex-direction:column} .poster{width:100%;height:200px} .no-poster{min-height:200px}
+    .card-title{font-size:1.6rem} .lt-opt{font-size:0.75rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Plex<span>ROULETTE</span></div>
+  <div class="rule"></div>
+</header>
+
+<!-- SETUP -->
+<div id="setup-panel">
+  <p class="panel-label">Connect to Plex</p>
+
+  <button class="oauth-btn" id="oauth-btn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10S17.523 22 12 22 2 17.523 2 12 6.477 2 12 2zm-2.5 6v8l7-4-7-4z"/>
+    </svg>
+    Sign in with Plex
+  </button>
+  <div class="status-line" id="oauth-status"></div>
+  <div style="text-align:center;min-height:1rem"><button class="signout-link" id="signout-btn" style="display:none">Sign out of Plex</button></div>
+
+  <div id="server-picker"></div>
+
+  <div class="or-divider">or enter manually</div>
+
+  <div class="field">
+    <label class="field-label" for="inp-url">Plex Server URL</label>
+    <input type="text" id="inp-url" placeholder="http://192.168.1.x:32400" autocomplete="off" spellcheck="false" />
+  </div>
+  <div class="field">
+    <label class="field-label" for="inp-token">X-Plex-Token</label>
+    <input type="password" id="inp-token" placeholder="paste token here" autocomplete="off" />
+    <p class="field-hint">
+      Find it: sign into <a href="https://app.plex.tv" target="_blank">app.plex.tv</a>, open any item,
+      click <strong>···</strong> &rarr; <strong>Get Info</strong> &rarr; <strong>View XML</strong>,
+      then copy <code>X-Plex-Token=&hellip;</code> from the URL bar.
+    </p>
+  </div>
+
+  <div class="field">
+    <label class="field-label">Include in roulette</label>
+    <div class="lib-type-row">
+      <label class="lt-opt active" id="lt-both"><input type="radio" name="lt" value="both" checked>Movies + TV</label>
+      <label class="lt-opt" id="lt-movie"><input type="radio" name="lt" value="movie">Movies only</label>
+      <label class="lt-opt" id="lt-show"><input type="radio" name="lt" value="show">TV only</label>
+    </div>
+  </div>
+
+  <div class="error-box" id="err-box"></div>
+  <button class="manual-btn" id="manual-btn">Connect with Token</button>
+</div>
+
+<!-- APP -->
+<div id="app-panel">
+  <div class="controls">
+    <div class="lib-tabs" id="lib-tabs"></div>
+    <button class="rnd-btn" id="rnd-btn">🎲 Randomize</button>
+  </div>
+
+  <div id="skeleton">
+    <div class="sk-inner">
+      <div class="sk-poster"></div>
+      <div class="sk-body">
+        <div class="sk-line" style="height:10px;width:48px"></div>
+        <div class="sk-line" style="height:30px;width:65%;margin-top:4px"></div>
+        <div class="sk-line" style="height:10px;width:40%;margin-top:4px"></div>
+        <div class="sk-line" style="height:10px;width:100%;margin-top:14px"></div>
+        <div class="sk-line" style="height:10px;width:88%"></div>
+        <div class="sk-line" style="height:10px;width:72%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="result-card">
+    <div class="card-inner">
+      <div class="poster" id="poster-wrap"><div class="no-poster">🎬</div></div>
+      <div class="card-body">
+        <div class="card-type" id="card-type"></div>
+        <div class="card-title" id="card-title"></div>
+        <div class="card-meta" id="card-meta"></div>
+        <div class="card-summary" id="card-summary"></div>
+        <div class="card-genres" id="card-genres"></div>
+        <a class="watch-btn" id="watch-btn" href="#" target="_blank" rel="noopener" style="display:none">&#9654; Watch on Plex</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="count-bar" id="count-bar"></div>
+  <button class="back-btn" id="back-btn">&#8592; Change Server</button>
+</div>
+
+<script>
+'use strict';
+
+const CLIENT_ID = 'plex-roulette-' + Math.random().toString(36).slice(2, 10);
+const PRODUCT   = 'Plex Roulette';
+
+let S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+
+const el   = id => document.getElementById(id);
+const show = (id, d) => { el(id).style.display = d || 'flex'; };
+const hide = id => { el(id).style.display = 'none'; };
+
+function setStatus(msg, spinner) {
+  el('oauth-status').innerHTML = spinner ? '<span class="spin"></span>' + msg : msg;
+}
+function clearStatus() { el('oauth-status').innerHTML = ''; }
+function setError(msg)  { const e = el('err-box'); e.innerHTML = msg; e.style.display = 'block'; }
+function clearError()   { el('err-box').style.display = 'none'; }
+
+function plexFetch(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  return fetch(S.url + path + sep + 'X-Plex-Token=' + S.token, {
+    headers: { Accept: 'application/json' }, mode: 'cors'
+  });
+}
+
+// Library type selector
+document.querySelectorAll('.lt-opt').forEach(function(opt) {
+  opt.addEventListener('click', function() {
+    document.querySelectorAll('.lt-opt').forEach(function(o) { o.classList.remove('active'); });
+    opt.classList.add('active');
+    S.libType = opt.querySelector('input').value;
+  });
+});
+
+// ── TOKEN PERSISTENCE ──
+function saveToken(token) {
+  try { localStorage.setItem('plexToken', token); } catch(e) {}
+}
+function loadToken() {
+  try { return localStorage.getItem('plexToken'); } catch(e) { return null; }
+}
+function clearToken() {
+  try { localStorage.removeItem('plexToken'); } catch(e) {}
+}
+
+// On page load, if we have a saved token, skip straight to server picker
+(async function() {
+  var saved = loadToken();
+  if (!saved) return;
+  S.token = saved;
+  el('inp-token').value = saved;
+  el('oauth-btn').disabled = true;
+  setStatus('Resuming session…', true);
+  try {
+    var r = await fetch('https://plex.tv/api/v2/user', {
+      headers: { Accept: 'application/json', 'X-Plex-Token': saved, 'X-Plex-Product': PRODUCT, 'X-Plex-Client-Identifier': CLIENT_ID }
+    });
+    if (!r.ok) throw new Error('invalid');
+    setStatus('Signed in. Finding your servers…', true);
+    el('signout-btn').style.display = 'inline';
+    await discoverServers();
+  } catch(e) {
+    clearToken();
+    el('signout-btn').style.display = 'none';
+    S.token = '';
+    el('inp-token').value = '';
+    el('oauth-btn').disabled = false;
+    clearStatus();
+  }
+})();
+
+// ── OAUTH ──
+el('oauth-btn').addEventListener('click', async function() {
+  el('oauth-btn').disabled = true;
+  clearError();
+  setStatus('Requesting sign-in&hellip;', true);
+
+  var pin;
+  try {
+    var r = await fetch('https://plex.tv/api/v2/pins', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'strong=true&X-Plex-Product=' + encodeURIComponent(PRODUCT) + '&X-Plex-Client-Identifier=' + encodeURIComponent(CLIENT_ID)
+    });
+    if (!r.ok) throw new Error('plex.tv returned ' + r.status);
+    pin = await r.json();
+  } catch(e) {
+    setError('<strong>Could not reach plex.tv.</strong> Make sure you\'re using the launcher script (start.command on Mac, start.bat on Windows) and not opening this file directly. Error: ' + e.message);
+    el('oauth-btn').disabled = false;
+    clearStatus();
+    return;
+  }
+
+  var forward = encodeURIComponent(location.href.split('#')[0]);
+  var authUrl = 'https://app.plex.tv/auth#?'
+    + 'clientID=' + encodeURIComponent(CLIENT_ID)
+    + '&code=' + encodeURIComponent(pin.code)
+    + '&context%5Bdevice%5D%5Bproduct%5D=' + encodeURIComponent(PRODUCT)
+    + '&forwardUrl=' + forward;
+
+  var popup = window.open(authUrl, 'plex_auth', 'width=820,height=720,left=200,top=80');
+  if (!popup) {
+    setStatus('Popup blocked &mdash; redirecting&hellip;', false);
+    setTimeout(function() { location.href = authUrl; }, 1000);
+    return;
+  }
+
+  setStatus('Waiting for Plex sign-in&hellip;', true);
+
+  var attempts = 0;
+  var pinId = pin.id;
+  (async function poll() {
+    if (attempts++ > 150) {
+      setError('Sign-in timed out. Please try again.');
+      el('oauth-btn').disabled = false; clearStatus(); return;
+    }
+    try {
+      var r = await fetch('https://plex.tv/api/v2/pins/' + pinId, {
+        headers: { Accept: 'application/json', 'X-Plex-Client-Identifier': CLIENT_ID }
+      });
+      var data = await r.json();
+      if (data.authToken) {
+        if (!popup.closed) popup.close();
+        S.token = data.authToken;
+        saveToken(S.token);
+        el('signout-btn').style.display = 'inline';
+        el('inp-token').value = S.token;
+        setStatus('Signed in! Finding your servers&hellip;', true);
+        await discoverServers();
+        return;
+      }
+    } catch(e) {}
+    if (popup.closed && attempts > 4) {
+      setError('Window closed before sign-in completed. Try again.');
+      el('oauth-btn').disabled = false; clearStatus(); return;
+    }
+    setTimeout(poll, 1000);
+  })();
+});
+
+async function discoverServers() {
+  var r;
+  try {
+    r = await fetch('https://plex.tv/api/v2/resources?includeHttps=1&includeRelay=1', {
+      headers: { Accept: 'application/json', 'X-Plex-Token': S.token, 'X-Plex-Product': PRODUCT, 'X-Plex-Client-Identifier': CLIENT_ID }
+    });
+    if (!r.ok) throw new Error('status ' + r.status);
+  } catch(e) {
+    setError('Signed in but could not list servers: ' + e.message);
+    el('oauth-btn').disabled = false; clearStatus(); return;
+  }
+  var resources = await r.json();
+  var servers = resources.filter(function(r) { return r.provides && r.provides.includes('server'); });
+  if (!servers.length) {
+    setError('No Plex Media Servers found on your account.');
+    el('oauth-btn').disabled = false; clearStatus(); return;
+  }
+  if (servers.length === 1) { await tryConnections(servers[0]); }
+  else { showServerPicker(servers); }
+}
+
+function showServerPicker(servers) {
+  clearStatus();
+  var picker = el('server-picker');
+  picker.innerHTML = '';
+  var lbl = document.createElement('div');
+  lbl.className = 'field-label';
+  lbl.textContent = 'Choose a server';
+  picker.appendChild(lbl);
+  servers.forEach(function(srv) {
+    var b = document.createElement('button');
+    b.className = 'server-opt';
+    b.textContent = srv.name;
+    b.onclick = async function() {
+      picker.style.display = 'none';
+      setStatus('Connecting to ' + srv.name + '&hellip;', true);
+      await tryConnections(srv);
+    };
+    picker.appendChild(b);
+  });
+  picker.style.display = 'flex';
+}
+
+async function tryConnections(server) {
+  var conns = (server.connections || []).slice().sort(function(a, b) {
+    if (a.local && !b.local) return -1;
+    if (!a.local && b.local) return  1;
+    if (a.relay && !b.relay) return  1;
+    if (!a.relay && b.relay) return -1;
+    return 0;
+  });
+  for (var i = 0; i < conns.length; i++) {
+    try {
+      var r = await fetch(conns[i].uri + '/library/sections?X-Plex-Token=' + S.token, {
+        headers: { Accept: 'application/json' }, mode: 'cors', signal: AbortSignal.timeout(4000)
+      });
+      if (r.ok) {
+        S.url = conns[i].uri;
+        el('inp-url').value = S.url;
+        await loadLibraries(await r.json());
+        return;
+      }
+    } catch(e) {}
+  }
+  clearStatus();
+  el('oauth-btn').disabled = false;
+  setError('Signed in, but could not reach your server directly (CORS on all connections). Your token is pre-filled &mdash; enter your server URL below and click <strong>Connect with Token</strong>.');
+}
+
+// ── MANUAL ──
+el('manual-btn').addEventListener('click', async function() {
+  clearError();
+  var url   = el('inp-url').value.trim().replace(/\/$/, '');
+  var token = el('inp-token').value.trim();
+  if (!url || !token) { setError('Please fill in both fields.'); return; }
+  S.url = url; S.token = token;
+  var btn = el('manual-btn');
+  btn.textContent = 'Connecting\u2026'; btn.disabled = true;
+  try {
+    var r = await fetch(S.url + '/library/sections?X-Plex-Token=' + S.token, {
+      headers: { Accept: 'application/json' }, mode: 'cors'
+    });
+    if (!r.ok) throw new Error('Server returned ' + r.status + ' \u2014 check your token.');
+    await loadLibraries(await r.json());
+  } catch(e) {
+    var msg = '<strong>Error:</strong> ' + e.message;
+    if (/networkerror|failed to fetch/i.test(e.message)) {
+      msg = '<strong>CORS / network error.</strong> Use the included launcher to open this page:<br>'
+          + '&bull; Mac: double-click <strong>start.command</strong><br>'
+          + '&bull; Windows: double-click <strong>start.bat</strong><br><br>'
+          + 'Or run: <code>python3 -m http.server 7777</code> then open '
+          + '<a href="http://localhost:7777/plex-randomizer.html" target="_blank">localhost:7777/plex-randomizer.html</a>';
+    }
+    setError(msg);
+  } finally { btn.textContent = 'Connect with Token'; btn.disabled = false; }
+});
+
+// ── SHARED CONNECT LOGIC ──
+async function loadLibraries(sectionsData) {
+  // Fetch server identity for deep links
+  try {
+    var ir = await plexFetch('/');
+    var id = await ir.json();
+    S.machineId = (id.MediaContainer && id.MediaContainer.machineIdentifier) || '';
+  } catch(e) { S.machineId = ''; }
+  var all = (sectionsData.MediaContainer && sectionsData.MediaContainer.Directory) || [];
+  S.libs = all
+    .filter(function(s) { return s.type === 'movie' || s.type === 'show'; })
+    .map(function(s) { return { id: s.key, title: s.title, type: s.type }; });
+  if (!S.libs.length) {
+    setError('No movie or TV libraries found on this server.');
+    el('oauth-btn').disabled = false; clearStatus(); return;
+  }
+  S.activeIds = new Set(S.libs.map(function(l) { return l.id; }));
+  await fetchItems();
+  buildTabs();
+  clearStatus();
+  hide('setup-panel');
+  show('app-panel');
+  spinRandom();
+}
+
+async function fetchItems() {
+  S.items = [];
+  el('count-bar').textContent = 'Loading\u2026';
+  var wanted = S.libType === 'both' ? ['movie','show'] : [S.libType];
+  var libs = S.libs.filter(function(l) { return wanted.includes(l.type); });
+  await Promise.all(libs.map(async function(lib) {
+    try {
+      var r = await plexFetch('/library/sections/' + lib.id + '/all');
+      if (!r.ok) return;
+      var d = await r.json();
+      var items = ((d.MediaContainer && d.MediaContainer.Metadata) || [])
+        .map(function(m) { return Object.assign({}, m, { _lid: lib.id, _ltype: lib.type }); });
+      S.items.push.apply(S.items, items);
+    } catch(e) {}
+  }));
+  el('count-bar').textContent = S.items.length.toLocaleString() + ' titles loaded';
+}
+
+function buildTabs() {
+  var c = el('lib-tabs'); c.innerHTML = '';
+  var wanted = S.libType === 'both' ? ['movie','show'] : [S.libType];
+  var visible = S.libs.filter(function(l) { return wanted.includes(l.type); });
+  if (visible.length > 1) {
+    c.appendChild(mkTab('All', null));
+    visible.forEach(function(l) { c.appendChild(mkTab(l.title, l.id)); });
+  }
+}
+
+function mkTab(label, libId) {
+  var b = document.createElement('button');
+  b.className = 'lib-tab' + (libId === null ? ' active' : '');
+  b.textContent = label;
+  b.addEventListener('click', function() {
+    document.querySelectorAll('.lib-tab').forEach(function(t) { t.classList.remove('active'); });
+    b.classList.add('active');
+    S.activeIds = libId === null ? new Set(S.libs.map(function(l) { return l.id; })) : new Set([libId]);
+    spinRandom();
+  });
+  return b;
+}
+
+// ── RANDOMIZE ──
+el('rnd-btn').addEventListener('click', spinRandom);
+
+async function spinRandom() {
+  var pool = S.items.filter(function(m) { return S.activeIds.has(m._lid); });
+  if (!pool.length) return;
+  var item = pool[Math.floor(Math.random() * pool.length)];
+  hide('result-card');
+  show('skeleton', 'flex');
+  el('rnd-btn').disabled = true;
+  try {
+    var r = await plexFetch('/library/metadata/' + item.ratingKey);
+    var d = await r.json();
+    renderCard((d.MediaContainer && d.MediaContainer.Metadata && d.MediaContainer.Metadata[0]) || item);
+  } catch(e) { renderCard(item); }
+  finally { el('rnd-btn').disabled = false; }
+}
+
+function renderCard(m) {
+  hide('skeleton');
+  el('card-type').textContent    = m.type === 'show' ? '\uD83D\uDCFA TV SHOW' : '\uD83C\uDFAC MOVIE';
+  el('card-title').textContent   = m.title   || 'Unknown';
+  el('card-summary').textContent = m.summary || 'No description available.';
+  var meta = [];
+  if (m.year)          meta.push('<span>' + m.year + '</span>');
+  if (m.contentRating) meta.push('<span class="badge">' + m.contentRating + '</span>');
+  if (m.duration)      meta.push('<span>\u23F1 ' + Math.round(m.duration / 60000) + ' min</span>');
+  if (m.rating)        meta.push('<span>\u2B50 ' + parseFloat(m.rating).toFixed(1) + '</span>');
+  if (m.type === 'show' && m.leafCount) meta.push('<span>' + m.leafCount + ' eps</span>');
+  if (m.studio)        meta.push('<span>' + m.studio + '</span>');
+  el('card-meta').innerHTML   = meta.join('');
+  el('card-genres').innerHTML = (m.Genre || []).map(function(g) { return '<span class="genre">' + g.tag + '</span>'; }).join('');
+  var watchBtn = el('watch-btn');
+  if (S.machineId && m.ratingKey) {
+    watchBtn.href = 'https://app.plex.tv/desktop/#!/server/' + S.machineId + '/details?key=%2Flibrary%2Fmetadata%2F' + m.ratingKey;
+    watchBtn.style.display = 'inline-flex';
+  } else {
+    watchBtn.style.display = 'none';
+  }
+  var pw = el('poster-wrap');
+  if (m.thumb) {
+    var sep = m.thumb.includes('?') ? '&' : '?';
+    pw.innerHTML = '<img src="' + S.url + m.thumb + sep + 'X-Plex-Token=' + S.token + '&width=430" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-poster>\uD83C\uDFAC</div>\'" />';
+  } else {
+    pw.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>';
+  }
+  var card = el('result-card');
+  card.style.display = 'block';
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'up 0.35s ease both';
+}
+
+// ── RESET ──
+el('back-btn').addEventListener('click', async function() {
+  var savedToken = S.token;
+  S = { url:'', token: savedToken, libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+  hide('app-panel'); hide('result-card'); hide('skeleton');
+  show('setup-panel', 'flex');
+  el('inp-url').value = '';
+  el('count-bar').textContent = '';
+  el('server-picker').style.display = 'none';
+  el('server-picker').innerHTML = '';
+  clearError();
+  document.querySelectorAll('.lt-opt').forEach(function(o) { o.classList.remove('active'); });
+  el('lt-both').classList.add('active');
+  // If we have a token, skip sign-in and go straight to server picker
+  if (savedToken) {
+    el('oauth-btn').disabled = true;
+    el('inp-token').value = savedToken;
+    setStatus('Finding your servers…', true);
+    await discoverServers();
+  } else {
+    el('oauth-btn').disabled = false;
+    clearStatus();
+  }
+});
+
+// Sign out completely (clears saved token)
+function signOut() {
+  clearToken();
+  S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+  hide('app-panel'); hide('result-card'); hide('skeleton');
+  show('setup-panel', 'flex');
+  el('inp-url').value = ''; el('inp-token').value = '';
+  el('count-bar').textContent = '';
+  el('oauth-btn').disabled = false;
+  el('signout-btn').style.display = 'none';
+  el('server-picker').style.display = 'none';
+  el('server-picker').innerHTML = '';
+  clearError(); clearStatus();
+  document.querySelectorAll('.lt-opt').forEach(function(o) { o.classList.remove('active'); });
+  el('lt-both').classList.add('active');
+}
+el('signout-btn').addEventListener('click', function() { el('signout-btn').style.display = 'none'; signOut(); });
+</script>
+</body>
+</html>
