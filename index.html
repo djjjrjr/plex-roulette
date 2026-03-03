@@ -216,7 +216,7 @@ let S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:
 // Set this to your Cloudflare Worker URL to enable remote server access.
 // Leave empty to connect directly (works on localhost, fails on deployed sites due to CORS).
 // e.g. 'https://plex-roulette-proxy.your-name.workers.dev'
-const PROXY_URL = 'https://hello-world.jjrussojjrusso.workers.dev/';
+const PROXY_URL = 'https://plex-roulette-proxy.jjrussojjrusso.workers.dev';
 
 function proxied(url) {
   if (!PROXY_URL) return url;
