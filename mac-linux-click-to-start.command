@@ -10,6 +10,6 @@ else
   exit 1
 fi
 sleep 0.8
-open http://localhost:7777/plex-randomizer.html 2>/dev/null || xdg-open http://localhost:7777/plex-randomizer.html 2>/dev/null
+open http://localhost:7777/index.html 2>/dev/null || xdg-open http://localhost:7777/index.html 2>/dev/null
 echo Plex Roulette is running. Close this window to stop.
 wait

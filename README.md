@@ -25,8 +25,8 @@ Drop `plex-randomizer.html` on any static host (GitHub Pages, Netlify, Vercel, C
 Download all three files and place them in the same folder:
 
 - `plex-randomizer.html`
-- `start.command` (Mac/Linux)
-- `start.bat` (Windows)
+- `mac-linux-click-to-start.command` (Mac/Linux)
+- `windows-click-to-start.bat` (Windows)
 
 Then double-click the launcher for your OS. It starts a local HTTP server and opens the app automatically. Requires Python 3, which ships with macOS and most Linux distros — install from [python.org](https://python.org) on Windows if needed.
 
