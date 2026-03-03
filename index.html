@@ -213,6 +213,18 @@ const PRODUCT   = 'Plex Roulette';
 
 let S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
 
+// Set this to your Cloudflare Worker URL to enable remote server access.
+// Leave empty to connect directly (works on localhost, fails on deployed sites due to CORS).
+// e.g. 'https://plex-roulette-proxy.your-name.workers.dev'
+const PROXY_URL = '';
+
+function proxied(url) {
+  if (!PROXY_URL) return url;
+  // Only proxy non-plex.tv URLs (server requests, not auth requests)
+  if (url.includes('plex.tv/api')) return url;
+  return PROXY_URL + '/proxy?url=' + encodeURIComponent(url);
+}
+
 const el   = id => document.getElementById(id);
 const show = (id, d) => { el(id).style.display = d || 'flex'; };
 const hide = id => { el(id).style.display = 'none'; };
@@ -226,7 +238,8 @@ function clearError()   { el('err-box').style.display = 'none'; }
 
 function plexFetch(path) {
   const sep = path.includes('?') ? '&' : '?';
-  return fetch(S.url + path + sep + 'X-Plex-Token=' + S.token, {
+  var url = S.url + path + sep + 'X-Plex-Token=' + S.token;
+  return fetch(proxied(url), {
     headers: { Accept: 'application/json' }, mode: 'cors'
   });
 }
@@ -407,7 +420,7 @@ async function tryConnections(server) {
     }
     try {
       console.log('Trying:', uri);
-      var r = await fetch(uri + '/library/sections?X-Plex-Token=' + S.token, {
+      var r = await fetch(proxied(uri + '/library/sections?X-Plex-Token=' + S.token), {
         headers: { Accept: 'application/json' }, mode: 'cors', signal: AbortSignal.timeout(8000)
       });
       if (r.ok) {
@@ -430,7 +443,7 @@ async function tryConnections(server) {
   if (location.protocol === 'https:' && !hasHttps) {
     setError('Could not connect: this server has no HTTPS connection available. The owner needs to enable <strong>Remote Access</strong> in their Plex settings (Settings → Remote Access), which gives the server a secure plex.direct address.');
   } else {
-    setError('Signed in, but could not reach your server directly. Your token is pre-filled — enter your server URL below and click <strong>Connect with Token</strong>.<br><br>Tip: check the browser console (F12) for details on which connections were attempted.');
+    setError('Could not reach this server. It may be offline or not accessible from outside your network.');
   }
 }
 
@@ -444,7 +457,7 @@ el('manual-btn').addEventListener('click', async function() {
   var btn = el('manual-btn');
   btn.textContent = 'Connecting\u2026'; btn.disabled = true;
   try {
-    var r = await fetch(S.url + '/library/sections?X-Plex-Token=' + S.token, {
+    var r = await fetch(proxied(S.url + '/library/sections?X-Plex-Token=' + S.token), {
       headers: { Accept: 'application/json' }, mode: 'cors'
     });
     if (!r.ok) throw new Error('Server returned ' + r.status + ' \u2014 check your token.');
