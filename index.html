@@ -211,7 +211,7 @@
 const CLIENT_ID = 'plex-roulette-' + Math.random().toString(36).slice(2, 10);
 const PRODUCT   = 'Plex Roulette';
 
-let S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+let S = { url:'', token:'', serverToken:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
 
 // Set this to your Cloudflare Worker URL to enable remote server access.
 // Leave empty to connect directly (works on localhost, fails on deployed sites due to CORS).
@@ -238,7 +238,7 @@ function clearError()   { el('err-box').style.display = 'none'; }
 
 function plexFetch(path) {
   const sep = path.includes('?') ? '&' : '?';
-  var url = S.url + path + sep + 'X-Plex-Token=' + S.token;
+  var url = S.url + path + sep + 'X-Plex-Token=' + (S.serverToken || S.token);
   return fetch(proxied(url), {
     headers: { Accept: 'application/json' }, mode: 'cors'
   });
@@ -376,7 +376,7 @@ async function discoverServers() {
     setError('No Plex Media Servers found on your account.');
     el('oauth-btn').disabled = false; clearStatus(); return;
   }
-  if (servers.length === 1) { await tryConnections(servers[0]); }
+  if (servers.length === 1) { await tryConnections(servers[0], servers[0].accessToken || S.token); }
   else { showServerPicker(servers); }
 }
 
@@ -395,14 +395,15 @@ function showServerPicker(servers) {
     b.onclick = async function() {
       picker.style.display = 'none';
       setStatus('Connecting to ' + srv.name + '&hellip;', true);
-      await tryConnections(srv);
+      await tryConnections(srv, srv.accessToken || S.token);
     };
     picker.appendChild(b);
   });
   picker.style.display = 'flex';
 }
 
-async function tryConnections(server) {
+async function tryConnections(server, serverToken) {
+  serverToken = serverToken || S.token;
   var conns = (server.connections || []).slice().sort(function(a, b) {
     if (a.local && !b.local) return -1;
     if (!a.local && b.local) return  1;
@@ -420,12 +421,13 @@ async function tryConnections(server) {
     }
     try {
       console.log('Trying:', uri);
-      var r = await fetch(proxied(uri + '/library/sections?X-Plex-Token=' + S.token), {
+      var r = await fetch(proxied(uri + '/library/sections?X-Plex-Token=' + serverToken), {
         headers: { Accept: 'application/json' }, mode: 'cors', signal: AbortSignal.timeout(8000)
       });
       if (r.ok) {
         console.log('Connected via:', uri);
         S.url = uri;
+        S.serverToken = serverToken;
         el('inp-url').value = S.url;
         await loadLibraries(await r.json());
         return;
@@ -597,7 +599,7 @@ function renderCard(m) {
 // ── RESET ──
 el('back-btn').addEventListener('click', async function() {
   var savedToken = S.token;
-  S = { url:'', token: savedToken, libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+  S = { url:'', token: savedToken, serverToken:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
   hide('app-panel'); hide('result-card'); hide('skeleton');
   show('setup-panel', 'flex');
   el('inp-url').value = '';
@@ -622,7 +624,7 @@ el('back-btn').addEventListener('click', async function() {
 // Sign out completely (clears saved token)
 function signOut() {
   clearToken();
-  S = { url:'', token:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
+  S = { url:'', token:'', serverToken:'', libs:[], activeIds:new Set(), libType:'both', items:[], machineId:'' };
   hide('app-panel'); hide('result-card'); hide('skeleton');
   show('setup-panel', 'flex');
   el('inp-url').value = ''; el('inp-token').value = '';
