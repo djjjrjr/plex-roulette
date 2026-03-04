@@ -561,6 +561,39 @@ async function spinRandom() {
   finally { el('rnd-btn').disabled = false; }
 }
 
+function loadProxiedImage(url, container) {
+  // If no proxy set, just use the URL directly (works on localhost)
+  if (!PROXY_URL) {
+    var img = document.createElement('img');
+    img.src = url;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.onerror = function() { container.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>'; };
+    container.innerHTML = '';
+    container.appendChild(img);
+    return;
+  }
+  fetch(proxied(url))
+    .then(function(r) {
+      if (!r.ok) throw new Error('bad status');
+      return r.blob();
+    })
+    .then(function(blob) {
+      var objectUrl = URL.createObjectURL(blob);
+      var img = document.createElement('img');
+      img.src = objectUrl;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.onload = function() { URL.revokeObjectURL(objectUrl); };
+      img.onerror = function() { container.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>'; };
+      container.innerHTML = '';
+      container.appendChild(img);
+    })
+    .catch(function() {
+      container.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>';
+    });
+}
+
 function renderCard(m) {
   hide('skeleton');
   el('card-type').textContent    = m.type === 'show' ? '\uD83D\uDCFA TV SHOW' : '\uD83C\uDFAC MOVIE';
@@ -585,7 +618,9 @@ function renderCard(m) {
   var pw = el('poster-wrap');
   if (m.thumb) {
     var sep = m.thumb.includes('?') ? '&' : '?';
-    pw.innerHTML = '<img src="' + S.url + m.thumb + sep + 'X-Plex-Token=' + S.token + '&width=430" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-poster>\uD83C\uDFAC</div>\'" />';
+    var thumbUrl = S.url + m.thumb + sep + 'X-Plex-Token=' + (S.serverToken || S.token) + '&width=430';
+    pw.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>'; // placeholder while loading
+    loadProxiedImage(thumbUrl, pw);
   } else {
     pw.innerHTML = '<div class="no-poster">\uD83C\uDFAC</div>';
   }
